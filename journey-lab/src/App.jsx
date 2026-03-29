@@ -113,7 +113,7 @@ const CATS = [
 ══════════════════════════════════════════════════════════ */
 async function ollamaChat(url, model, messages) {
   const r = await fetch(`${url}/api/chat`, {
-    method:"POST", headers:{"Content-Type":"application/json"},
+    method:"POST", headers:{"Content-Type":"application/json","ngrok-skip-browser-warning":"true"},
     body:JSON.stringify({ model, messages, stream:false }),
   });
   if (!r.ok) throw new Error(`Ollama ${r.status}`);
@@ -171,38 +171,42 @@ async function agentAd(url, model, product, category, ctx, onStep) {
 /* ══════════════════════════════════════════════════════════
    GOOGLE SHEETS — silent background POST
 ══════════════════════════════════════════════════════════ */
-async function pushToSheet(scriptUrl, session) {
-  if (!scriptUrl) return { ok:false, reason:"no_url" };
-  const rows = session.turns.map(t => ({
+// Send ONE turn at a time as flat URL params — avoids GET length limits
+async function pushTurnToSheet(scriptUrl, session, turn) {
+  if (!scriptUrl) return;
+  const p = new URLSearchParams({
     session_id:         session.id,
-    email:              session.email,
+    email:              session.email || "",
     product:            session.product,
     category:           session.category,
-    ad_target_turn:     session.ad_target_turn,
-    turn_id:            t.turn_id,
-    ts:                 t.ts,
-    user_prompt:        t.user_prompt,
-    assistant_response: t.assistant_response,
-    stage:              t.stage,
-    depth:              t.depth,
-    attribute:          t.attribute,
-    emotion:            t.emotion,
-    reasoning:          t.note,
-    ad_shown:           t.ad_shown ? 1 : 0,
-    ad_product:         t.ad_shown ? (session.ad?.product_name ?? "") : "",
-    ad_brand:           t.ad_shown ? (session.ad?.brand ?? "") : "",
-    ad_price:           t.ad_shown ? (session.ad?.price ?? "") : "",
-    ad_stage:           t.ad_shown ? t.stage : "",
-    ad_depth:           t.ad_shown ? t.depth : "",
-  }));
+    ad_target_turn:     String(session.ad_target_turn),
+    turn_id:            String(turn.turn_id),
+    ts:                 turn.ts,
+    user_prompt:        (turn.user_prompt   || "").slice(0, 800),
+    assistant_response: (turn.assistant_response || "").slice(0, 800),
+    stage:              turn.stage,
+    depth:              String(turn.depth),
+    attribute:          turn.attribute || "",
+    emotion:            turn.emotion   || "",
+    reasoning:          turn.note      || "",
+    ad_shown:           turn.ad_shown ? "1" : "0",
+    ad_product:         turn.ad_shown ? (session.ad?.product_name ?? "") : "",
+    ad_brand:           turn.ad_shown ? (session.ad?.brand  ?? "") : "",
+    ad_price:           turn.ad_shown ? (session.ad?.price  ?? "") : "",
+    ad_stage:           turn.ad_shown ? turn.stage : "",
+    ad_depth:           turn.ad_shown ? String(turn.depth) : "",
+  });
   try {
-    const r = await fetch(scriptUrl, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ rows }),
-      mode:"no-cors", // Apps Script requires no-cors from browser
-    });
-    return { ok:true, rows:rows.length };
+    await fetch(`${scriptUrl}?${p.toString()}`, { method:"GET", mode:"no-cors" });
+  } catch(_) {}
+}
+
+async function pushToSheet(scriptUrl, session) {
+  if (!scriptUrl) return { ok:false, reason:"no_url" };
+  try {
+    const lastTurn = session.turns.at(-1);
+    if (lastTurn) await pushTurnToSheet(scriptUrl, session, lastTurn);
+    return { ok:true };
   } catch(e) {
     return { ok:false, reason:e.message };
   }
@@ -272,7 +276,7 @@ function ConfigModal({ cfg, setCfg, onClose }) {
   async function testOllama() {
     setSt("checking");
     try {
-      const r = await fetch(`${cfg.url}/api/tags`);
+      const r = await fetch(`${cfg.url}/api/tags`, { headers:{"ngrok-skip-browser-warning":"true"} });
       if (r.ok) { setMs((await r.json()).models?.map(m=>m.name)||[]); setSt("ok"); }
       else setSt("fail");
     } catch { setSt("fail"); }
