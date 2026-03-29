@@ -196,11 +196,13 @@ async function pushToSheet(scriptUrl, session) {
     ad_depth:           t.ad_shown ? t.depth : "",
   }));
   try {
-    const r = await fetch(scriptUrl, {
+    // Must use text/plain + no-cors so browser sends body without preflight
+    // Apps Script receives it via e.postData.contents and parses as JSON
+    await fetch(scriptUrl, {
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{"Content-Type":"text/plain"},
       body:JSON.stringify({ rows }),
-      mode:"no-cors", // Apps Script requires no-cors from browser
+      mode:"no-cors",
     });
     return { ok:true, rows:rows.length };
   } catch(e) {
