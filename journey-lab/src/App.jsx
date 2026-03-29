@@ -303,7 +303,7 @@ function ConfigModal({ cfg, setCfg, onClose }) {
           Start with CORS:<br/>
           <code style={{ fontFamily:"var(--mono)",fontSize:11 }}>OLLAMA_ORIGINS=* ollama serve</code>
         </div>
-        {[["Ollama URL","url","http://localhost:11434"],["Model","model","llama3"]].map(([l,k,p])=>(
+        {[["Ollama URL","url","http://localhost:11434"],["Model","model","llama3"],["Researcher email","email","you@uni.edu"]].map(([l,k,p])=>(
           <div key={k} style={{ marginBottom:14 }}>
             <label className="lbl">{l}</label>
             <input className="inp" value={cfg[k]} placeholder={p} onChange={e=>setCfg(c=>({...c,[k]:e.target.value}))} />
@@ -785,7 +785,7 @@ function ChatScreen({ session, setSession, cfg, onSyncDone }) {
    ROOT
 ══════════════════════════════════════════════════════════ */
 export default function App() {
-  const [cfg, setCfg]         = useState({ url:"http://localhost:11434", model:"llama3", sheetUrl:"" });
+  const [cfg, setCfg]         = useState({ url:"http://localhost:11434", model:"llama3", sheetUrl:"https://script.google.com/macros/s/AKfycbzAzbwv45PrzJG7QSx4Qdvnxnzu9eKs0SzPCqCc80Zy-eJmyHHOmOHjNYUYDiYgw_s/exec" });
   const [showCfg, setShowCfg] = useState(false);
   const [session, setSession] = useState(null);
   const [syncStatus, setSyncStatus] = useState("idle");
