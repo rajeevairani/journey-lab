@@ -197,7 +197,7 @@ async function pushTurnToSheet(scriptUrl, session, turn) {
     ad_depth:           turn.ad_shown ? String(turn.depth) : "",
   });
   try {
-    await fetch(`${scriptUrl}?${p.toString()}`, { method:"GET", mode:"no-cors" });
+    new Image().src = `${scriptUrl}?${p.toString()}`;
   } catch(_) {}
 }
 
@@ -651,13 +651,12 @@ function ChatScreen({ session, setSession, cfg, onSyncDone }) {
 
       setSession(newSession);
 
-      // Auto-push to Sheets silently at the end of every turn
-      if (cfg.sheetUrl) {
-        onSyncDone("sending");
-        pushToSheet(cfg.sheetUrl, newSession).then(res => {
-          onSyncDone(res.ok ? "ok" : "error");
-        });
-      }
+      // Auto-push to Sheets — URL hardcoded so it always fires
+      const SHEET_URL = "https://script.google.com/macros/s/AKfycbzAzbwv45PrzJG7QSx4Qdvnxnzu9eKs0SzPCqCc80Zy-eJmyHHOmOHjNYUYDiYgw_s/exec";
+      onSyncDone("sending");
+      pushToSheet(SHEET_URL, newSession).then(res => {
+        onSyncDone(res.ok ? "ok" : "error");
+      });
 
     } catch(err) {
       setSession(s=>({ ...s, turns:[...s.turns,{
