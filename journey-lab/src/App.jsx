@@ -113,7 +113,7 @@ const CATS = [
 ══════════════════════════════════════════════════════════ */
 async function ollamaChat(url, model, messages) {
   const r = await fetch(`${url}/api/chat`, {
-    method:"POST", headers:{"Content-Type":"application/json","ngrok-skip-browser-warning":"true"},
+    method:"POST", headers:{"Content-Type":"application/json"},
     body:JSON.stringify({ model, messages, stream:false }),
   });
   if (!r.ok) throw new Error(`Ollama ${r.status}`);
@@ -275,7 +275,7 @@ function ConfigModal({ cfg, setCfg, onClose }) {
   async function testOllama() {
     setSt("checking");
     try {
-      const r = await fetch(`${cfg.url}/api/tags`, { headers:{"ngrok-skip-browser-warning":"true"} });
+      const r = await fetch(`${cfg.url}/api/tags`);
       if (r.ok) { setMs((await r.json()).models?.map(m=>m.name)||[]); setSt("ok"); }
       else setSt("fail");
     } catch { setSt("fail"); }
