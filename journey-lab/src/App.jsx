@@ -176,7 +176,6 @@ async function pushTurnToSheet(scriptUrl, session, turn) {
   if (!scriptUrl) return;
   const p = new URLSearchParams({
     session_id:         session.id,
-    email:              session.email || "",
     product:            session.product,
     category:           session.category,
     ad_target_turn:     String(session.ad_target_turn),
@@ -197,7 +196,7 @@ async function pushTurnToSheet(scriptUrl, session, turn) {
     ad_depth:           turn.ad_shown ? String(turn.depth) : "",
   });
   try {
-    new Image().src = `${scriptUrl}?${p.toString()}`;
+    await fetch(`${scriptUrl}?${p.toString()}`, { method:"GET", mode:"no-cors" });
   } catch(_) {}
 }
 
@@ -216,7 +215,7 @@ async function pushToSheet(scriptUrl, session) {
    CSV FALLBACK
 ══════════════════════════════════════════════════════════ */
 const CSV_HEADERS = [
-  "session_id","email","product","category","ad_target_turn",
+  "session_id","product","category","ad_target_turn",
   "turn_id","ts","user_prompt","assistant_response",
   "stage","depth","attribute","emotion","reasoning",
   "ad_shown","ad_product","ad_brand","ad_price","ad_stage","ad_depth"
@@ -225,7 +224,7 @@ const CSV_HEADERS = [
 function buildCSV(s) {
   const e = v => `"${String(v??'').replace(/"/g,'""')}"`;
   const rows = s.turns.map(t=>[
-    s.id,s.email,s.product,s.category,s.ad_target_turn,
+    s.id,s.product,s.category,s.ad_target_turn,
     t.turn_id,t.ts,t.user_prompt,t.assistant_response,
     t.stage,t.depth,t.attribute,t.emotion,t.note,
     t.ad_shown?1:0,
@@ -303,7 +302,7 @@ function ConfigModal({ cfg, setCfg, onClose }) {
           Start with CORS:<br/>
           <code style={{ fontFamily:"var(--mono)",fontSize:11 }}>OLLAMA_ORIGINS=* ollama serve</code>
         </div>
-        {[["Ollama URL","url","http://localhost:11434"],["Model","model","llama3"],["Researcher email","email","you@uni.edu"]].map(([l,k,p])=>(
+        {[["Ollama URL","url","http://localhost:11434"],["Model","model","llama3"]].map(([l,k,p])=>(
           <div key={k} style={{ marginBottom:14 }}>
             <label className="lbl">{l}</label>
             <input className="inp" value={cfg[k]} placeholder={p} onChange={e=>setCfg(c=>({...c,[k]:e.target.value}))} />
@@ -478,7 +477,7 @@ function RightPanel({ session, model, onManualCSV }) {
       <div style={{ height:1,background:"var(--bd)",margin:"0 16px" }} />
 
       <div style={{ padding:"14px 16px",flex:1 }}>
-        {[["Product",session.product||"—"],["Category",session.category||"—"],["LLM",model],["Email",session.email||"anonymous"]].map(([k,v])=>(
+        {[["Product",session.product||"—"],["Category",session.category||"—"],["LLM",model]].map(([k,v])=>(
           <div key={k} style={{ marginBottom:12 }}>
             <div style={{ fontFamily:"var(--mono)",fontSize:9,letterSpacing:1.5,color:"var(--dim)",marginBottom:3 }}>{k}</div>
             <div style={{ fontSize:11,color:"var(--mut)",wordBreak:"break-word",lineHeight:1.4 }}>{v}</div>
@@ -528,7 +527,7 @@ function RightPanel({ session, model, onManualCSV }) {
    SETUP SCREEN
 ══════════════════════════════════════════════════════════ */
 function SetupScreen({ onStart, cfg }) {
-  const [f, setF] = useState({ email:"", product:"", category:"" });
+  const [f, setF] = useState({ product:"", category:"" });
   const ok = f.product.trim() && f.category;
   const sheetReady = !!cfg.sheetUrl;
 
@@ -557,10 +556,6 @@ function SetupScreen({ onStart, cfg }) {
         )}
 
         <div style={{ background:"var(--L2)",border:"1px solid var(--bd2)",borderRadius:18,padding:34 }}>
-          <div style={{ marginBottom:20 }}>
-            <label className="lbl">Participant email (optional)</label>
-            <input className="inp" type="email" placeholder="participant@email.com" value={f.email} onChange={e=>setF(x=>({...x,email:e.target.value}))} />
-          </div>
           <div style={{ marginBottom:20 }}>
             <label className="lbl">What are you thinking of buying?</label>
             <input className="inp" placeholder="e.g. wireless headphones, travel insurance, running shoes…" value={f.product} onChange={e=>setF(x=>({...x,product:e.target.value}))} />
@@ -807,7 +802,6 @@ export default function App() {
     setSyncStatus("idle");
     setSession({
       id:             `PJL_${Date.now()}`,
-      email:          form.email,
       product:        form.product,
       category:       form.category,
       started_at:     new Date().toISOString(),
